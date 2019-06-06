@@ -1,0 +1,10 @@
+[package]
+name = "vivzone"
+version = "0.1.0"
+authors = ["Vivian Lim <vivlim@pm.me>"]
+edition = "2018"
+
+[dependencies]
+askama = "0.8"
+rocket = "0.4.1"
+spongedown = { version = "0.3.2", with-csv = ["csv"] }
