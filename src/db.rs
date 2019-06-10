@@ -23,3 +23,10 @@ pub fn get_user_from_name(name: &String) -> QueryResult<models::User> {
     users.filter(username.eq(name))
         .get_result::<models::User>(&conn)
 }
+
+pub fn get_user_from_id(id: i32) -> QueryResult<models::User> {
+    use schema::users::dsl::*;
+    let conn = establish_connection();
+    users.filter(id.eq(id))
+        .get_result::<models::User>(&conn)
+}

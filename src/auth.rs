@@ -1,6 +1,7 @@
 extern crate sha2;
 extern crate hex;
 use rocket::response::content;
+use rocket::http::{Cookie, Cookies};
 use rocket::request::Form;
 use rocket::request::FromForm;
 use askama::Template;
@@ -27,13 +28,28 @@ pub struct AuthCookie {
 }
 
 pub struct AuthError {
-    pub attempted_username: String,
     pub error_detail: String
 }
 
 impl std::fmt::Display for AuthError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} (when trying to sign in as {})", self.error_detail, self.attempted_username)
+        write!(f, "{}", self.error_detail)
+    }
+}
+
+impl std::convert::From<std::num::ParseIntError> for AuthError {
+    fn from(e: std::num::ParseIntError) -> AuthError {
+        AuthError {
+            error_detail: format!("Error parsing integer. {}", e)
+        }
+    }
+}
+
+impl std::convert::From<diesel::result::Error> for AuthError {
+    fn from(e: diesel::result::Error) -> AuthError {
+        AuthError {
+            error_detail: format!("Error querying db: {}", e)
+        }
     }
 }
 
@@ -44,11 +60,12 @@ pub fn login_page() -> content::Html<std::string::String> {
 }
 
 #[post("/login", data = "<input>")]
-pub fn login_handle(input: Form<LoginForm>) -> String {
+pub fn login_handle(mut cookies: Cookies, input: Form<LoginForm>) -> String {
     match validate_login_attempt(&input.username, &input.password) {
         Err(e) => format!("Couldn't log in: {}", e),
         Ok(user) => {
-            format!("one day you would be logged in, {} {}", input.username, input.password)
+            create_session_cookies(&mut cookies, &user);
+            format!("you're logged in now, {}. <a href=\"/\">continue home</a>", input.username)
         }
     }
 }
@@ -71,8 +88,12 @@ pub fn create_user_debug(name: String, pass: String) -> String {
 }
 
 fn create_salted_pwhash(pass: &String, salt: &String) -> String {
+    create_hash_string(&format!("{}{}", pass, salt))
+}
+
+fn create_hash_string(input: &String) -> String {
     let mut hasher = Sha512::new();
-    hasher.input(format!("{}{}", pass, salt));
+    hasher.input(input);
     hex::encode(hasher.result())
 }
 
@@ -80,7 +101,6 @@ fn validate_login_attempt(name: &String, pass: &String) -> Result<User, AuthErro
     // get the user row
     match db::get_user_from_name(name) {
         Err(e) => Err(AuthError{
-            attempted_username: name.clone(),
             error_detail: format!("Couldn't find user {}", e)
         }),
         Ok(user) => {
@@ -90,10 +110,40 @@ fn validate_login_attempt(name: &String, pass: &String) -> Result<User, AuthErro
                 return Ok(user);
             }
             return Err(AuthError{
-                attempted_username: name.clone(),
                 error_detail: String::from("Incorrect password.")
             });
         }
     }
+}
 
+pub fn create_session_cookies(cookies: &mut Cookies, user: &User) {
+    cookies.add_private(Cookie::new("user_id", user.id.to_string()));
+    cookies.add_private(Cookie::new("pw2hash", create_hash_string(&user.pass_sha)));
+}
+
+pub fn remove_session_cookies(cookies: &mut Cookies) {
+    cookies.remove_private(Cookie::named("user_id"));
+    cookies.remove_private(Cookie::named("pw2hash"));
+}
+
+pub fn validate_session_cookies(cookies: &mut Cookies) -> Result<User, AuthError> {
+    match (cookies.get_private("user_id"), cookies.get_private("pw2hash")) {
+        (Some(cookie_user_id_str), Some(cookie_pw2hash)) => {
+            let cookie_user_id = cookie_user_id_str.value().parse::<i32>()?;
+            let db_user = db::get_user_from_id(cookie_user_id)?;
+            let db_pw2hash = create_hash_string(&db_user.pass_sha);
+
+            if db_pw2hash.eq(&cookie_pw2hash.value()) {
+                return Ok(db_user);
+            }
+            else {
+                return Err(AuthError {
+                    error_detail: String::from("Password in cookie doesn't match database.")
+                })
+            }
+        }
+        _ => Err(AuthError { // either id or hash cookie are missing
+            error_detail: "Missing auth cookie.".to_string()
+        }),
+    }
 }
