@@ -1,10 +1,17 @@
 table! {
-    posts (id) {
-        id -> Integer,
-        author -> Integer,
+    post_contents (post_id, revision) {
+        post_id -> Integer,
+        revision -> Integer,
         title -> Text,
         body -> Text,
         published -> Bool,
+    }
+}
+
+table! {
+    posts (id) {
+        id -> Integer,
+        author -> Integer,
     }
 }
 
@@ -18,6 +25,7 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
+    post_contents,
     posts,
     users,
 );

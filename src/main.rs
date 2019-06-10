@@ -1,6 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate diesel;
+#[macro_use] extern crate lazy_static;
 
 extern crate askama; // for the Template trait and custom derive macro
 extern crate spongedown;
@@ -57,5 +58,12 @@ fn post_handle(mut cookies: Cookies, input: Form<auth::LoginForm>) -> String {
 }
 
 fn main() {
-    rocket::ignite().mount("/", routes![index, auth::login_page, auth::login_handle, auth::create_user_debug, post_page, post_handle]).launch();
+    rocket::ignite().mount("/", routes![
+        index,
+        auth::login_page,
+        auth::login_handle,
+        auth::create_user_debug,
+        post_page,
+        post_handle
+    ]).launch();
 }
