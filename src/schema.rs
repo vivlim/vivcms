@@ -4,7 +4,6 @@ table! {
         revision -> Integer,
         title -> Text,
         body -> Text,
-        published -> Bool,
     }
 }
 
@@ -12,6 +11,7 @@ table! {
     posts (id) {
         id -> Integer,
         author -> Integer,
+        published_revision -> Nullable<Integer>,
     }
 }
 

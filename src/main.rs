@@ -26,6 +26,17 @@ struct HelloTemplate<'a> { // the name of the struct can be anything
                    // in your template
 }
    
+#[derive(Template)]
+#[template(path = "create_post.html")]
+pub struct PostTemplate {
+    pub prev_body: String
+}
+
+#[derive(FromForm)]
+pub struct PostForm {
+    pub title: String,
+    pub body: String,
+}
 
 #[get("/")]
 fn index() -> content::Html<std::string::String> {
@@ -39,23 +50,31 @@ fn post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
-            let page = auth::LoginTemplate {};
+            let page = PostTemplate {prev_body: "".to_string()};
             content::Html(page.render().unwrap())
         }
-
     }
 }
 
 #[post("/post", data = "<input>")]
-fn post_handle(mut cookies: Cookies, input: Form<auth::LoginForm>) -> String {
+fn post_handle(mut cookies: Cookies, input: Form<PostForm>) -> String {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => e.error_detail,
-        Ok(_user) => {
-            format!("{} {}", input.username, input.password)
+        Ok(user) => {
+            match db::create_new_post(models::NewPost {
+                author: user.id
+            }, models::NewPostContents {
+                title: input.title.clone(),
+                body: input.body.clone()
+            }) {
+                Err(e) => format!("{}", e),
+                Ok(_) => "okay you made a post, cool".to_string()
+            }
         }
 
     }
 }
+
 
 fn main() {
     rocket::ignite().mount("/", routes![

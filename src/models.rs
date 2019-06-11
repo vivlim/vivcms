@@ -4,7 +4,8 @@ use super::schema::*;
 #[derive(Queryable)]
 pub struct Post {
     pub id: i32,
-    pub author: i32
+    pub author: i32,
+    pub published_revision: Option<i32>
 }
 
 #[derive(Queryable)]
@@ -13,7 +14,6 @@ pub struct PostContents {
     pub revision: i32,
     pub title: String,
     pub body: String,
-    pub published: bool
 }
 
 #[derive(Queryable)]
@@ -39,7 +39,6 @@ pub struct NewPost {
 pub struct NewPostContents {
     pub title: String,
     pub body: String,
-    pub published: bool
 }
 
 #[derive(Insertable)]
@@ -48,8 +47,7 @@ pub struct NewPostContentsInsertion {
     pub post_id: i32,
     pub revision: i32,
     pub title: String,
-    pub body: String,
-    pub published: bool
+    pub body: String
 }
 
 #[derive(Insertable)]

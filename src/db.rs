@@ -71,15 +71,27 @@ fn get_post_info(post: models::Post, conn: &SqliteConnection) -> QueryResult<mod
     use schema::post_contents::dsl as pc;
     let user = users::users.filter(users::id.eq(post.author))
         .first::<models::User>(conn)?;
-    let latest_contents = pc::post_contents.filter(pc::post_id.eq(post.id).and(pc::published.eq(true)))
-        .order(pc::post_id.desc())
-        .first::<models::PostContents>(conn);
-    
-    Ok(models::JoinedPost {
-        post: post,
-        latest_contents: match latest_contents {Err(_) => None, Ok(c) => Some(c)},
-        author: user
-    })
+
+    match post.published_revision {
+        Some(published_revision) => {
+            let latest_contents = pc::post_contents.filter(pc::post_id.eq(post.id).and(pc::revision.eq(published_revision)))
+                .order(pc::post_id.desc())
+                .first::<models::PostContents>(conn);
+
+            Ok(models::JoinedPost {
+                post: post,
+                latest_contents: match latest_contents {Err(_) => None, Ok(c) => Some(c)},
+                author: user
+            })
+        },
+        None => {
+            Ok(models::JoinedPost {
+                post: post,
+                latest_contents: None,
+                author: user
+            })
+        }
+    }
 }
 
 pub fn create_post_contents(post: models::Post, contents: models::NewPostContents) -> QueryResult<models::PostContents> {
@@ -97,16 +109,24 @@ pub fn create_post_contents(post: models::Post, contents: models::NewPostContent
         post_id: post_info.post.id,
         revision: next_revision_number,
         title: contents.title,
-        body: contents.body,
-        published: contents.published
+        body: contents.body
     };
 
     diesel::insert_into(schema::post_contents::table)
         .values(&insertion)
         .execute(&conn)?;
+
     post_contents
         .filter(post_id.eq(insertion.post_id))
         .order(post_id.desc())
         .order(revision.desc())
         .first::<models::PostContents>(&conn)
+}
+
+
+pub fn create_new_post(new_post: models::NewPost, new_post_content: models::NewPostContents) -> QueryResult<models::JoinedPost> {
+    let p = create_post(new_post)?;
+    let pid = p.id;
+    let c = create_post_contents(p, new_post_content)?;
+    Ok(get_post_by_id(pid)?)
 }
