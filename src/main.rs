@@ -32,6 +32,14 @@ pub struct PostTemplate {
     pub prev_body: String
 }
 
+#[derive(Template)]
+#[template(path = "view_post.html")]
+pub struct ViewPostTemplate {
+    pub title: String,
+    pub author: String,
+    pub body: String
+}
+
 #[derive(FromForm)]
 pub struct PostForm {
     pub title: String,
@@ -45,8 +53,8 @@ fn index() -> content::Html<std::string::String> {
     content::Html(parse(&in_html).unwrap())
 }
 
-#[get("/post")]
-fn post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
+#[get("/admin/post/new")]
+fn new_post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
@@ -56,7 +64,28 @@ fn post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
     }
 }
 
-#[post("/post", data = "<input>")]
+#[get("/admin/post/edit/<post_id>")]
+fn edit_post_page(mut cookies: Cookies, post_id: i32) -> content::Html<std::string::String> {
+    match auth::validate_session_cookies(&mut cookies) {
+        Err(e) => content::Html(e.error_detail),
+        Ok(_user) => {
+            match db::get_post_by_id(post_id) {
+                Err(e) => content::Html(format!("{}", e)),
+                Ok(post) => {
+                    match post.latest_contents {
+                        None => content::Html("Can't edit a post with no contents".to_string()),
+                        Some(latest_contents) => {
+                            let page = PostTemplate {prev_body: latest_contents.body};
+                            content::Html(page.render().unwrap())
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[post("/admin/post/new", data = "<input>")]
 fn post_handle(mut cookies: Cookies, input: Form<PostForm>) -> String {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => e.error_detail,
@@ -75,6 +104,27 @@ fn post_handle(mut cookies: Cookies, input: Form<PostForm>) -> String {
     }
 }
 
+#[get("/post/<post_id>")]
+fn view_post(post_id: i32) -> content::Html<String> {
+    match db::get_post_by_id(post_id) {
+        Err(e) => content::Html(format!("this page doesn't exist? {}", e)),
+        Ok(post) => {
+            match post.latest_contents {
+                None => content::Html("This post has no contents".to_string()),
+                Some(latest_content) => {
+                    let page = ViewPostTemplate {
+                        author: post.author.username,
+                        title: latest_content.title,
+                        body: latest_content.body
+                    };
+
+                    content::Html(page.render().unwrap())
+                }
+            }
+        }
+    }
+}
+
 
 fn main() {
     rocket::ignite().mount("/", routes![
@@ -82,7 +132,9 @@ fn main() {
         auth::login_page,
         auth::login_handle,
         auth::create_user_debug,
-        post_page,
-        post_handle
+        new_post_page,
+        edit_post_page,
+        post_handle,
+        view_post
     ]).launch();
 }
