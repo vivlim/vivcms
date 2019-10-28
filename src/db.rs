@@ -41,12 +41,31 @@ pub fn create_post(post: models::NewPost) -> QueryResult<models::Post> {
         .first::<models::Post>(&conn)
 }
 
-pub fn get_post_by_id(pid: i32) -> QueryResult<models::JoinedPost> {
+pub fn get_post_by_id<'a>(pid: i32) -> QueryResult<models::JoinedPost> {
     use schema::posts::dsl::*;
     let conn = establish_connection();
     let post = posts.filter(id.eq(pid))
         .first::<models::Post>(&conn)?;
     get_post_info(post, &conn)
+}
+
+pub fn set_post_published_id(post_id: i32, published_content_id: i32) -> QueryResult<usize> {
+    use schema::posts::dsl::*;
+    let connection = establish_connection();
+    // make sure that published_content_id exists, and that it matches post
+    let content_with_id = schema::post_contents::dsl::post_contents
+        .filter(schema::post_contents::dsl::id.eq(published_content_id))
+        .first::<models::PostContent>(&connection);
+    
+    match content_with_id {
+        Err(e) => Err(e),
+        Ok(_) => {
+            let target_post = posts.filter(id.eq(post_id)).first::<models::Post>(&connection)?;
+            diesel::update(&target_post).set(published_content.eq(published_content_id)).execute(&connection)
+        }
+    }
+
+
 }
 
 pub fn get_posts() -> QueryResult<Vec<models::JoinedPost>> {
@@ -59,7 +78,6 @@ pub fn get_posts() -> QueryResult<Vec<models::JoinedPost>> {
         .map(|p| get_post_info(p, &conn)) // Transform all posts into joined posts.
         .filter_map(|p| p.ok()) // Remove any posts that failed to be transformed
         .collect::<Vec<models::JoinedPost>>())
-
 }
 
 fn get_post_info(post: models::Post, conn: &SqliteConnection) -> QueryResult<models::JoinedPost> {
@@ -72,42 +90,35 @@ fn get_post_info(post: models::Post, conn: &SqliteConnection) -> QueryResult<mod
     let user = users::users.filter(users::id.eq(post.author))
         .first::<models::User>(conn)?;
 
-    match post.published_revision {
-        Some(published_revision) => {
-            let latest_contents = pc::post_contents.filter(pc::post_id.eq(post.id).and(pc::revision.eq(published_revision)))
-                .order(pc::post_id.desc())
-                .first::<models::PostContents>(conn);
+    let contents = models::PostContent::belonging_to(&post)
+        .load::<models::PostContent>(conn)?;
 
+    match post.published_content {
+        Some(published_content_id) => {
             Ok(models::JoinedPost {
                 post: post,
-                latest_contents: match latest_contents {Err(_) => None, Ok(c) => Some(c)},
+                published_content_index: contents.iter().position(|c| c.id == published_content_id), // map ID to index in contents vector
+                contents: contents,
                 author: user
             })
         },
         None => {
             Ok(models::JoinedPost {
                 post: post,
-                latest_contents: None,
+                contents: contents,
+                published_content_index: None,
                 author: user
             })
         }
     }
 }
 
-pub fn create_post_contents(post: models::Post, contents: models::NewPostContents) -> QueryResult<models::PostContents> {
+pub fn create_post_contents(post: models::Post, contents: models::NewPostContents) -> QueryResult<models::PostContent> {
     use schema::post_contents::dsl::*;
     let conn = establish_connection();
 
-    // Get the current information about this post so we can know what the latest content revision number is
-    let post_info = get_post_info(post, &conn)?;
-    let next_revision_number = match post_info.latest_contents {
-        Some(latest_contents) => latest_contents.revision + 1,
-        None => 0 // no previous contents, so just start at 0.
-    };
-
-    let insertion = models::NewPostContentsInsertion {
-        post_id: post_info.post.id,
-        revision: next_revision_number,
+    let insertion = models::NewPostContentInsertion {
+        post_id: post.id,
         title: contents.title,
         body: contents.body
     };
@@ -118,9 +129,8 @@ pub fn create_post_contents(post: models::Post, contents: models::NewPostContent
 
     post_contents
         .filter(post_id.eq(insertion.post_id))
-        .order(post_id.desc())
-        .order(revision.desc())
-        .first::<models::PostContents>(&conn)
+        .order(id.desc())
+        .first::<models::PostContent>(&conn)
 }
 
 

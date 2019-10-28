@@ -2,13 +2,12 @@
 CREATE TABLE posts (
   id INTEGER PRIMARY KEY NOT NULL,
   author INTEGER NOT NULL,
-  published_revision INTEGER
+  published_content INTEGER
 );
 
 CREATE TABLE post_contents (
+  id INTEGER PRIMARY KEY NOT NULL,
   post_id INTEGER NOT NULL,
-  revision INTEGER NOT NULL,
   title VARCHAR NOT NULL,
-  body TEXT NOT NULL,
-  PRIMARY KEY (post_id, revision)
+  body TEXT NOT NULL
 );

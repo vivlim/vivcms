@@ -28,16 +28,16 @@ struct HelloTemplate<'a> { // the name of the struct can be anything
    
 #[derive(Template)]
 #[template(path = "create_post.html")]
-pub struct PostTemplate {
-    pub prev_body: String
+pub struct PostTemplate<'a> {
+    pub prev_body: &'a String
 }
 
 #[derive(Template)]
 #[template(path = "view_post.html")]
-pub struct ViewPostTemplate {
-    pub title: String,
-    pub author: String,
-    pub body: String
+pub struct ViewPostTemplate<'a> {
+    pub title: &'a String,
+    pub author: &'a String,
+    pub body: &'a String
 }
 
 #[derive(FromForm)]
@@ -58,7 +58,7 @@ fn new_post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
-            let page = PostTemplate {prev_body: "".to_string()};
+            let page = PostTemplate {prev_body: &"".to_string()};
             content::Html(page.render().unwrap())
         }
     }
@@ -72,10 +72,10 @@ fn edit_post_page(mut cookies: Cookies, post_id: i32) -> content::Html<std::stri
             match db::get_post_by_id(post_id) {
                 Err(e) => content::Html(format!("{}", e)),
                 Ok(post) => {
-                    match post.latest_contents {
+                    match post.get_published_content() {
                         None => content::Html("Can't edit a post with no contents".to_string()),
                         Some(latest_contents) => {
-                            let page = PostTemplate {prev_body: latest_contents.body};
+                            let page = PostTemplate {prev_body: &latest_contents.body};
                             content::Html(page.render().unwrap())
                         }
                     }
@@ -109,13 +109,13 @@ fn view_post(post_id: i32) -> content::Html<String> {
     match db::get_post_by_id(post_id) {
         Err(e) => content::Html(format!("this page doesn't exist? {}", e)),
         Ok(post) => {
-            match post.latest_contents {
+            match post.get_published_content() {
                 None => content::Html("This post has no contents".to_string()),
                 Some(latest_content) => {
                     let page = ViewPostTemplate {
-                        author: post.author.username,
-                        title: latest_content.title,
-                        body: latest_content.body
+                        author: &post.author.username,
+                        title: &latest_content.title,
+                        body: &latest_content.body
                     };
 
                     content::Html(page.render().unwrap())

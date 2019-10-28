@@ -1,22 +1,24 @@
-use diesel::{Queryable,Insertable};
+use diesel::{Queryable,Insertable,Identifiable};
 use super::schema::*;
 
-#[derive(Queryable)]
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(User, foreign_key="author")]
 pub struct Post {
     pub id: i32,
     pub author: i32,
-    pub published_revision: Option<i32>
+    pub published_content: Option<i32>
 }
 
-#[derive(Queryable)]
-pub struct PostContents {
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(Post)]
+pub struct PostContent {
+    pub id: i32,
     pub post_id: i32,
-    pub revision: i32,
     pub title: String,
     pub body: String,
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Identifiable, Debug)]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -26,8 +28,18 @@ pub struct User {
 
 pub struct JoinedPost {
     pub post: Post,
-    pub latest_contents: Option<PostContents>,
-    pub author: User
+    pub contents: Vec<PostContent>,
+    pub author: User,
+    pub published_content_index: Option<usize>
+}
+
+impl JoinedPost {
+    pub fn get_published_content(&self) -> Option<&PostContent>{
+        match self.published_content_index {
+            None => None,
+            Some(i) => self.contents.get(i)
+        }
+    }
 }
 
 #[derive(Insertable)]
@@ -43,9 +55,8 @@ pub struct NewPostContents {
 
 #[derive(Insertable)]
 #[table_name="post_contents"]
-pub struct NewPostContentsInsertion {
+pub struct NewPostContentInsertion {
     pub post_id: i32,
-    pub revision: i32,
     pub title: String,
     pub body: String
 }

@@ -1,7 +1,7 @@
 table! {
-    post_contents (post_id, revision) {
+    post_contents (id) {
+        id -> Integer,
         post_id -> Integer,
-        revision -> Integer,
         title -> Text,
         body -> Text,
     }
@@ -11,7 +11,7 @@ table! {
     posts (id) {
         id -> Integer,
         author -> Integer,
-        published_revision -> Nullable<Integer>,
+        published_content -> Nullable<Integer>,
     }
 }
 
