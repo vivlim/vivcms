@@ -1,12 +1,36 @@
-<form action="/admin/post/new" method="post">
+<form action="{{form_action}}" method="post">
       <p>
             Title: <input type="text" name="title"/>
       </p>
       <p>
             <textarea name="body">
-                {{prev_body}}
+                  {% match existing_post %}
+                        {% when Some with (post) %}
+                              {% match post.get_published_content() %}
+                                    {% when Some with (val) %}
+                                          {{ val.body }}
+                                    {% when None %}
+                              {% endmatch %}
+                        {% when None %}
+                  {% endmatch %}
             </textarea>
       </p>
+
+      {% match existing_post %}
+            {% when Some with (post) %}
+                  {% for content in post.contents %}
+                  <p>
+                        {{content.id}} Title: <input type="text" name="title" value="{{content.title}}"/>
+                  </p>
+                  <p>
+                        <textarea name="body">
+                        {{content.body}}
+                        </textarea>
+                  </p>
+                  {% endfor %}
+            {% when None %}
+                  <p>no content here, buddy</p>
+      {% endmatch %}
       <p>
             <input type="submit" />
       </p>

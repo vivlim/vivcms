@@ -17,8 +17,8 @@ bespoke cms / rust learning project.
 
 ## what doesn't / what's planned
 * creating posts `/admin/post/new`
-    * I don't think they have contents associated with them correctly. (versioning is messed)
 * listing posts that exist
+* clicking a button to publish a specific version of a post.
 * post versioning (I have some WIP but not sure)
 * header/footer?
 * link together the pages cohesively

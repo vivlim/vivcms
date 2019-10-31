@@ -7,6 +7,7 @@ extern crate askama; // for the Template trait and custom derive macro
 extern crate spongedown;
 
 use askama::Template;
+
 use spongedown::parse;
 
 use rocket::response::content;
@@ -28,8 +29,9 @@ struct HelloTemplate<'a> { // the name of the struct can be anything
    
 #[derive(Template)]
 #[template(path = "create_post.html")]
-pub struct PostTemplate<'a> {
-    pub prev_body: &'a String
+pub struct PostTemplate {
+    pub existing_post: Option<models::JoinedPost>,
+    pub form_action: &'static str
 }
 
 #[derive(Template)]
@@ -58,7 +60,7 @@ fn new_post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
-            let page = PostTemplate {prev_body: &"".to_string()};
+            let page = PostTemplate {existing_post: None, form_action: "/admin/post/new"};
             content::Html(page.render().unwrap())
         }
     }
@@ -72,13 +74,8 @@ fn edit_post_page(mut cookies: Cookies, post_id: i32) -> content::Html<std::stri
             match db::get_post_by_id(post_id) {
                 Err(e) => content::Html(format!("{}", e)),
                 Ok(post) => {
-                    match post.get_published_content() {
-                        None => content::Html("Can't edit a post with no contents".to_string()),
-                        Some(latest_contents) => {
-                            let page = PostTemplate {prev_body: &latest_contents.body};
-                            content::Html(page.render().unwrap())
-                        }
-                    }
+                    let page = PostTemplate {existing_post: Some(post), form_action: "/admin/post/edit"};
+                    content::Html(page.render().unwrap())
                 }
             }
         }
@@ -136,5 +133,6 @@ fn main() {
         edit_post_page,
         post_handle,
         view_post
-    ]).launch();
+    ])
+    .launch();
 }
