@@ -1,4 +1,14 @@
+<p>
+{% match user %}
+{% when Some with (logged_in_user) %}
+Hello {{logged_in_user.username}}!
+{% when None %}
+<a href="/login">Log in</a>
+{% endmatch %}
+</p>
+
 <table border="1">
+      <th>Boards</th>
 {% for board in boards %}
 <tr>
       <td>

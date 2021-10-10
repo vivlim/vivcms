@@ -1,6 +1,6 @@
 extern crate sha2;
 extern crate hex;
-use rocket::response::content;
+use rocket::response::{self, Redirect, content};
 use rocket::http::{Cookie, CookieJar};
 use rocket::form::Form;
 use rocket::form::FromForm;
@@ -9,6 +9,7 @@ use sha2::{Sha512, Digest};
 use diesel::{self, SqliteConnection};
 use thiserror::Error;
 
+use crate::ForumError;
 use crate::storage::crud;
 use crate::storage::db::establish_connection;
 use crate::storage::db::models::{NewUser,User};
@@ -63,15 +64,11 @@ pub fn login_page() -> content::Html<std::string::String> {
 }
 
 #[post("/login", data = "<input>")]
-pub fn login_handle(mut cookies: &CookieJar<'_>, input: Form<LoginForm>) -> String {
+pub fn login_handle(mut cookies: &CookieJar<'_>, input: Form<LoginForm>) -> Result<Redirect, ForumError> {
     let conn = establish_connection();
-    match validate_login_attempt(&conn, &input.username, &input.password) {
-        Err(e) => format!("Couldn't log in: {}", e),
-        Ok(user) => {
-            create_session_cookies(&mut cookies, &user);
-            format!("you're logged in now, {}. <a href=\"/\">continue home</a>", input.username)
-        }
-    }
+    let user = validate_login_attempt(&conn, &input.username, &input.password)?;
+    create_session_cookies(&mut cookies, &user);
+    Ok(response::Redirect::to("/".to_string()))
 }
 
 #[get("/createuser/<name>/<pass>")]

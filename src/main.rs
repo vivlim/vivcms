@@ -12,6 +12,7 @@ use rocket::Response;
 use rocket::http::ContentType;
 use rocket::http::Status;
 use rocket::response;
+use storage::db::models::User;
 use thiserror::Error;
 use askama::Template;
 
@@ -49,7 +50,9 @@ pub enum ForumError {
     #[error("db error {0}")]
     DbError(#[from] diesel::result::Error),
     #[error("auth error {0}")]
-    AuthError(#[from] auth::AuthError)
+    AuthError(#[from] auth::AuthError),
+    #[error("Unexpected issue: {0}")]
+    Unexpected(String)
 
 }
 
@@ -70,7 +73,8 @@ impl<'r> Responder<'r, 'static> for ForumError {
 #[derive(Template)]
 #[template(path = "view_boards.html")]
 pub struct ViewBoardsTemplate {
-    pub boards: Vec<db::models::Board>
+    pub boards: Vec<db::models::Board>,
+    pub user: Option<User>
 }
 
 
@@ -89,10 +93,11 @@ pub struct PostForm {
 }
 
 #[get("/")]
-fn index() -> content::Html<std::string::String> {
+fn index(mut cookies: &CookieJar<'_>) -> content::Html<std::string::String> {
     let conn = establish_connection();
+    let user = auth::validate_session_cookies(&conn, &mut cookies).ok();
     let boards = crud::boards::get_boards(&conn).unwrap();
-    let page = ViewBoardsTemplate { boards };
+    let page = ViewBoardsTemplate { boards, user };
     content::Html(page.render().unwrap())
 }
 
@@ -184,6 +189,8 @@ fn rocket() -> _ {
         pages::post_editor::reply_in_thread,
         pages::post_editor::edit_post,
         pages::post_editor::save_board_page,
+        pages::post_editor::save_reply_page,
+        pages::view_thread::view_thread,
         post_handle,
         view_post
     ])

@@ -78,6 +78,13 @@ pub fn save_board_page(mut cookies: &CookieJar<'_>, input: Form<PostEditorForm>,
     let board = crud::boards::get_board_by_id(&conn, board_id)?;
     save_post(&conn, input, FormMode::NewThread(board), &user)
 }
+#[post("/thread/<thread_id>/reply", data = "<input>")]
+pub fn save_reply_page(mut cookies: &CookieJar<'_>, input: Form<PostEditorForm>, thread_id: i32) -> Result<Redirect, ForumError> {
+    let conn = establish_connection();
+    let user = auth::validate_session_cookies(&conn, &mut cookies)?;
+    let thread = crud::threads::get_thread_by_id(&conn, thread_id)?;
+    save_post(&conn, input, FormMode::Reply(thread), &user)
+}
 
 fn save_post(conn: &SqliteConnection, form: Form<PostEditorForm>, mode: FormMode, author: &User) -> Result<Redirect, ForumError> {
     // Save post and get the thread that the post was written to, so we can redirect to it.
@@ -92,5 +99,5 @@ fn save_post(conn: &SqliteConnection, form: Form<PostEditorForm>, mode: FormMode
         FormMode::EditPost(_) => todo!(),
     };
 
-    Ok(response::Redirect::temporary(format!("/thread/{}", thread.id)))
+    Ok(response::Redirect::to(format!("/thread/{}", thread.id)))
 }

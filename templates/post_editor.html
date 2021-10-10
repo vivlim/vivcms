@@ -3,7 +3,7 @@
             Title: <input type="text" name="title"
             {% match mode %}
                   {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
-                        value="{{ reply_context.first_post.contents.title }}"
+                        value="Re: {{ reply_context.first_post.contents.title }}"
                   {% when crate::pages::post_editor::Mode::EditPost with (post) %}
                         value="{{ post.contents.title }}"
                   {% when crate::pages::post_editor::Mode::NewThread with (board) %}
@@ -11,16 +11,16 @@
             />
       </p>
       <p>
-            <textarea name="body">
-            {% match mode %}
-                  {% when crate::pages::post_editor::Mode::EditPost with (post) %}
-                        {{ post.contents.body }}
-                  {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
-                  {% when crate::pages::post_editor::Mode::NewThread with (board) %}
-            {% endmatch %}
-            </textarea>
+{% match mode %}
+{% when crate::pages::post_editor::Mode::EditPost with (post) %}
+            <textarea name="body">{{ post.contents.body }}</textarea>
+{% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
+            <textarea name="body"></textarea>
+{% when crate::pages::post_editor::Mode::NewThread with (board) %}
+            <textarea name="body"></textarea>
+{% endmatch %}
       </p>
-            Target ID: <input type="text"
+            <input type="hidden"
             {% match mode %}
                   {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
                         name="thread_id" value="{{ reply_context.thread.id }}"

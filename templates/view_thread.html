@@ -1,0 +1,17 @@
+<a href="/">Home</a>
+<a href="/board/{{board.id}}">{{board.title}}</a>
+<h1>{{title}}</h1>
+<p><a href="/thread/{{thread.id}}/reply">Reply</a></p>
+<table border="1">
+{% for post in posts %}
+<tr>
+      <td>
+            <a href="/user/{{post.post.author.id}}">{{post.post.author.username}}</a>
+      </td>
+      <td>
+            <p>{{post.post.contents.title}}</p>
+            <p>{{post.post.contents.body}}</p>
+      </td>
+</tr>
+{% endfor %}
+</table>
