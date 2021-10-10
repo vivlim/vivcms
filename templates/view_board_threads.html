@@ -1,0 +1,12 @@
+<h1>{{board.title}}</h1>
+<p><a href="/board/{{board.id}}/new_thread">New thread</a></p>
+<table border="1">
+{% for thread in threads %}
+<tr>
+      <td>
+            <p><a href="/thread/{{thread.id}}">{{thread.first_post.contents.title}}</a></p>
+            <p>by {{thread.first_post.author.username}}</p>
+      </td>
+</tr>
+{% endfor %}
+</table>

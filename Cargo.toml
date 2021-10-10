@@ -13,3 +13,4 @@ diesel = { version = "1.4.8", features = ["sqlite"] }
 sha2 = "0.8.0"
 hex = "0.4.3"
 lazy_static = "1.4.0"
+thiserror = "1.0.30"

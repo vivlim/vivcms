@@ -7,6 +7,7 @@ use rocket::form::FromForm;
 use askama::Template;
 use sha2::{Sha512, Digest};
 use diesel::{self, SqliteConnection};
+use thiserror::Error;
 
 use crate::storage::crud;
 use crate::storage::db::establish_connection;
@@ -28,6 +29,7 @@ pub struct AuthCookie {
     pub display: Option<String>,
 }
 
+#[derive(Debug, Error)]
 pub struct AuthError {
     pub error_detail: String
 }

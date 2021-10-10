@@ -47,7 +47,7 @@ pub struct User {
 #[derive(Debug)]
 pub struct JoinedPost {
     pub post: Post,
-    pub contents: Vec<PostContent>,
+    pub contents: PostContent,
     pub author: User,
 }
 

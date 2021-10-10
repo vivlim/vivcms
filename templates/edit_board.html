@@ -1,0 +1,25 @@
+<h1>Create/Edit Board</h1>
+<form action="/admin/board/save" method="post">
+      {% match existing_board %}
+            {% when Some with (post) %}
+                  <p>
+                        Title: <input type="text" name="title" value="{{post.title}}"/>
+                  </p>
+                  <p>
+                        Details: <input type="text" name="details" value="{{post.details}}"/>
+                  </p>
+                  <p>
+                        id: <input type="text" name="id" value="{{post.id}}"/>
+                  </p>
+            {% when None %}
+                  <p>
+                        Title: <input type="text" name="title" />
+                  </p>
+                  <p>
+                        Details: <input type="text" name="details" />
+                  </p>
+            {% endmatch %}
+            <p>
+                  <input type="submit" />
+            </p>
+</form>

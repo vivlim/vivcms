@@ -2766,6 +2766,7 @@ dependencies = [
  "rocket",
  "sha2 0.8.2",
  "spongedown",
+ "thiserror",
 ]
 
 [[package]]

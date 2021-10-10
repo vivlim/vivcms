@@ -1,0 +1,36 @@
+<form action="{{form_action}}" method="post">
+      <p>
+            Title: <input type="text" name="title"
+            {% match mode %}
+                  {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
+                        value="{{ reply_context.first_post.contents.title }}"
+                  {% when crate::pages::post_editor::Mode::EditPost with (post) %}
+                        value="{{ post.contents.title }}"
+                  {% when crate::pages::post_editor::Mode::NewThread with (board) %}
+            {% endmatch %}
+            />
+      </p>
+      <p>
+            <textarea name="body">
+            {% match mode %}
+                  {% when crate::pages::post_editor::Mode::EditPost with (post) %}
+                        {{ post.contents.body }}
+                  {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
+                  {% when crate::pages::post_editor::Mode::NewThread with (board) %}
+            {% endmatch %}
+            </textarea>
+      </p>
+            Target ID: <input type="text"
+            {% match mode %}
+                  {% when crate::pages::post_editor::Mode::Reply with (reply_context) %}
+                        name="thread_id" value="{{ reply_context.thread.id }}"
+                  {% when crate::pages::post_editor::Mode::EditPost with (post) %}
+                        name="post_id" value="{{ post.post.id }}"
+                  {% when crate::pages::post_editor::Mode::NewThread with (board) %}
+                        name="board_id" value="{{ board.id }}"
+            {% endmatch %}
+            />
+      <p>
+            <input type="submit" />
+      </p>
+</form>

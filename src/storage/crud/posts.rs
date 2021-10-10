@@ -40,7 +40,7 @@ pub fn create_post_contents(conn: &SqliteConnection, post: &Post, author: &User,
     {
         use schema::post_contents::dsl::*;
         diesel::insert_into(schema::post_contents::table)
-            .values(&post_contents)
+            .values(&post_content)
             .execute(conn)?;
         post_contents.order(id.desc())
             .first::<models::PostContent>(conn)
@@ -52,7 +52,7 @@ pub fn get_post_by_id<'a>(conn: &SqliteConnection, pid: i32) -> QueryResult<mode
     use schema::posts::dsl::*;
     let post = posts.filter(id.eq(pid))
         .first::<models::Post>(conn)?;
-    get_post_info(post, &conn)
+    get_post_info(&conn, post)
 }
 
 pub fn get_posts(conn: &SqliteConnection) -> QueryResult<Vec<models::JoinedPost>> {
@@ -61,12 +61,12 @@ pub fn get_posts(conn: &SqliteConnection) -> QueryResult<Vec<models::JoinedPost>
         .load::<models::Post>(conn)?;
 
     Ok(result.into_iter()
-        .map(|p| get_post_info(p, &conn)) // Transform all posts into joined posts.
+        .map(|p| get_post_info(&conn, p)) // Transform all posts into joined posts.
         .filter_map(|p| p.ok()) // Remove any posts that failed to be transformed
         .collect::<Vec<models::JoinedPost>>())
 }
 
-fn get_post_info(post: models::Post, conn: &SqliteConnection) -> QueryResult<models::JoinedPost> {
+pub fn get_post_info(conn: &SqliteConnection, post: models::Post) -> QueryResult<models::JoinedPost> {
     // Get more information about a post (author, contents)
     // Implemented as multiple queries because it's not immediately obvious how to do this join
     // and this is probably performant enough at the scale it will be used
@@ -76,7 +76,8 @@ fn get_post_info(post: models::Post, conn: &SqliteConnection) -> QueryResult<mod
         .first::<models::User>(conn)?;
 
     let contents = models::PostContent::belonging_to(&post)
-        .load::<models::PostContent>(conn)?;
+        .order_by(schema::post_contents::dsl::id.desc())
+        .first::<models::PostContent>(conn)?;
 
     Ok(models::JoinedPost {
         post: post,

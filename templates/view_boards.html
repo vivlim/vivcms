@@ -1,0 +1,10 @@
+<table border="1">
+{% for board in boards %}
+<tr>
+      <td>
+            <p><a href="/board/{{board.id}}">{{board.title}}</a></p>
+            <p>{{board.details}}</p>
+      </td>
+</tr>
+{% endfor %}
+</table>
