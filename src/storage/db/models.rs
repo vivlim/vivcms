@@ -19,7 +19,7 @@ pub struct Thread {
 #[belongs_to(Thread)]
 pub struct Post {
     pub id: i32,
-    pub author: i32,
+    pub author_id: i32,
     pub thread_id: i32,
     pub created: i32
 }
@@ -44,20 +44,11 @@ pub struct User {
     pub salt: String
 }
 
+#[derive(Debug)]
 pub struct JoinedPost {
     pub post: Post,
     pub contents: Vec<PostContent>,
     pub author: User,
-    pub published_content_index: Option<usize>
-}
-
-impl JoinedPost {
-    pub fn get_published_content(&self) -> Option<&PostContent>{
-        match self.published_content_index {
-            None => None,
-            Some(i) => self.contents.get(i)
-        }
-    }
 }
 
 #[derive(Insertable)]

@@ -6,10 +6,11 @@ use rocket::form::Form;
 use rocket::form::FromForm;
 use askama::Template;
 use sha2::{Sha512, Digest};
-use diesel;
+use diesel::{self, SqliteConnection};
 
-use super::db;
-use super::models::{NewUser,User};
+use crate::storage::crud;
+use crate::storage::db::establish_connection;
+use crate::storage::db::models::{NewUser,User};
 
 #[derive(Template)]
 #[template(path = "login.html")]
@@ -61,7 +62,8 @@ pub fn login_page() -> content::Html<std::string::String> {
 
 #[post("/login", data = "<input>")]
 pub fn login_handle(mut cookies: &CookieJar<'_>, input: Form<LoginForm>) -> String {
-    match validate_login_attempt(&input.username, &input.password) {
+    let conn = establish_connection();
+    match validate_login_attempt(&conn, &input.username, &input.password) {
         Err(e) => format!("Couldn't log in: {}", e),
         Ok(user) => {
             create_session_cookies(&mut cookies, &user);
@@ -82,7 +84,8 @@ pub fn create_user_debug(name: String, pass: String) -> String {
         salt: &salt
     };
 
-    db::create_user(new_user);
+    let conn = establish_connection();
+    crud::user::create_user(&conn, new_user);
     
     format!("Added user {}", name)
 }
@@ -97,9 +100,9 @@ fn create_hash_string(input: &String) -> String {
     hex::encode(hasher.result())
 }
 
-fn validate_login_attempt(name: &String, pass: &String) -> Result<User, AuthError> {
+fn validate_login_attempt(conn: &SqliteConnection, name: &String, pass: &String) -> Result<User, AuthError> {
     // get the user row
-    match db::get_user_from_name(name) {
+    match crud::user::get_user_from_name(conn, name) {
         Err(e) => Err(AuthError{
             error_detail: format!("Couldn't find user {}", e)
         }),
@@ -126,11 +129,11 @@ pub fn remove_session_cookies(cookies: &CookieJar<'_>) {
     cookies.remove_private(Cookie::named("pw2hash"));
 }
 
-pub fn validate_session_cookies(cookies: &CookieJar<'_>) -> Result<User, AuthError> {
+pub fn validate_session_cookies(conn: &SqliteConnection, cookies: &CookieJar<'_>) -> Result<User, AuthError> {
     match (cookies.get_private("user_id"), cookies.get_private("pw2hash")) {
         (Some(cookie_user_id_str), Some(cookie_pw2hash)) => {
             let cookie_user_id = cookie_user_id_str.value().parse::<i32>()?;
-            let db_user = db::get_user_from_id(cookie_user_id)?;
+            let db_user = crud::user::get_user_from_id(conn, cookie_user_id)?;
             let db_pw2hash = create_hash_string(&db_user.pass_sha);
 
             if db_pw2hash.eq(&cookie_pw2hash.value()) {

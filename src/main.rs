@@ -12,11 +12,12 @@ use spongedown::parse;
 use rocket::response::content;
 use rocket::form::Form;
 use rocket::http::{CookieJar};
+use storage::db::{self, establish_connection};
+
+use crate::storage::crud;
 
 mod auth;
-mod db;
-mod models;
-mod schema;
+mod storage;
 
 #[derive(Template)] // this will generate the code...
 #[template(path = "hello.html")] // using the template in this path, relative
@@ -83,40 +84,45 @@ fn edit_post_page(mut cookies: &CookieJar<'_>, post_id: i32) -> content::Html<st
 
 #[post("/admin/post/new", data = "<input>")]
 fn post_handle(mut cookies: &CookieJar<'_>, input: Form<PostForm>) -> String {
-    match auth::validate_session_cookies(&mut cookies) {
-        Err(e) => e.error_detail,
-        Ok(user) => {
-            match db::create_new_post(models::NewPost {
-                author: user.id
-            }, models::NewPostContents {
-                title: input.title.clone(),
-                body: input.body.clone()
-            }) {
-                Err(e) => format!("{}", e),
-                Ok(_) => "okay you made a post, cool".to_string()
-            }
-        }
+    "not implemented yet, need to create boards and threads 1st".to_string()
+    // let conn = establish_connection();
+    // match auth::validate_session_cookies(&conn, &mut cookies) {
+    //     Err(e) => e.error_detail,
+    //     Ok(user) => {
+    //         match crud::posts::create_post(
 
-    }
+    //         //     author_id: user.id
+    //         // }, models::NewPostContents {
+    //         //     title: input.title.clone(),
+    //         //     body: input.body.clone()
+    //         ) {
+    //             Err(e) => format!("{}", e),
+    //             Ok(_) => "okay you made a post, cool".to_string()
+    //         }
+    //     }
+
+    // }
 }
 
 #[get("/post/<post_id>")]
 fn view_post(post_id: i32) -> content::Html<String> {
-    match db::get_post_by_id(post_id) {
+    let conn = establish_connection();
+    match crud::posts::get_post_by_id(&conn, post_id) {
         Err(e) => content::Html(format!("this page doesn't exist? {}", e)),
         Ok(post) => {
-            match post.get_published_content() {
-                None => content::Html("This post has no contents".to_string()),
-                Some(latest_content) => {
-                    let page = ViewPostTemplate {
-                        author: &post.author.username,
-                        title: &latest_content.title,
-                        body: &latest_content.body
-                    };
+            content::Html(format!("{:?}", post))
+            // match post.get_published_content() {
+            //     None => content::Html("This post has no contents".to_string()),
+            //     Some(latest_content) => {
+            //         let page = ViewPostTemplate {
+            //             author: &post.author.username,
+            //             title: &latest_content.title,
+            //             body: &latest_content.body
+            //         };
 
-                    content::Html(page.render().unwrap())
-                }
-            }
+            //         content::Html(page.render().unwrap())
+            //     }
+            // }
         }
     }
 }
