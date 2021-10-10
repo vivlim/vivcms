@@ -2,11 +2,26 @@ use diesel::{Queryable,Insertable,Identifiable};
 use super::schema::*;
 
 #[derive(Queryable, Identifiable, Associations, Debug)]
-#[belongs_to(User, foreign_key="author")]
+pub struct Board {
+    pub id: i32,
+    pub title: String,
+    pub details: String
+}
+
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(Board)]
+pub struct Thread {
+    pub id: i32,
+    pub board_id: i32
+}
+
+#[derive(Queryable, Identifiable, Associations, Debug)]
+#[belongs_to(Thread)]
 pub struct Post {
     pub id: i32,
     pub author: i32,
-    pub published_content: Option<i32>
+    pub thread_id: i32,
+    pub created: i32
 }
 
 #[derive(Queryable, Identifiable, Associations, Debug)]
@@ -14,8 +29,11 @@ pub struct Post {
 pub struct PostContent {
     pub id: i32,
     pub post_id: i32,
+    pub author_id: i32,
     pub title: String,
     pub body: String,
+    pub created: i32,
+    pub is_published: i32,
 }
 
 #[derive(Queryable, Identifiable, Debug)]
@@ -43,12 +61,29 @@ impl JoinedPost {
 }
 
 #[derive(Insertable)]
+#[table_name="boards"]
+pub struct NewBoard {
+    pub title: String,
+    pub details: String,
+}
+
+#[derive(Insertable)]
+#[table_name="threads"]
+pub struct NewThread {
+    pub board_id: i32,
+}
+
+#[derive(Insertable)]
 #[table_name="posts"]
 pub struct NewPost {
-    pub author: i32
+    pub author_id: i32,
+    pub thread_id: i32,
+    pub created: i32
 }
 
 pub struct NewPostContents {
+    pub post_id: i32,
+    pub author_id: i32,
     pub title: String,
     pub body: String,
 }
@@ -57,8 +92,11 @@ pub struct NewPostContents {
 #[table_name="post_contents"]
 pub struct NewPostContentInsertion {
     pub post_id: i32,
+    pub author_id: i32,
     pub title: String,
-    pub body: String
+    pub body: String,
+    pub created: i32,
+    pub is_published: i32
 }
 
 #[derive(Insertable)]

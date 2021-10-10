@@ -1,5 +1,15 @@
 
 use diesel::prelude::*;
+use crate::models::Board;
+use crate::models::NewBoard;
+use crate::models::NewPost;
+use crate::models::NewPostContentInsertion;
+use crate::models::NewPostContents;
+use crate::models::NewThread;
+use crate::models::Post;
+use crate::models::Thread;
+use crate::models::User;
+
 use super::models;
 use super::schema;
 
@@ -31,15 +41,71 @@ pub fn get_user_from_id(uid: i32) -> QueryResult<models::User> {
         .get_result::<models::User>(&conn)
 }
 
-pub fn create_post(post: models::NewPost) -> QueryResult<models::Post> {
-    use schema::posts::dsl::*;
-    let conn = establish_connection();
-    diesel::insert_into(schema::posts::table)
-        .values(&post)
-        .execute(&conn)?;
-    posts.order(id.desc())
-        .first::<models::Post>(&conn)
+pub fn create_board(conn: &SqliteConnection, title: String, details: String) -> QueryResult<models::Board> {
+    let new_board = NewBoard {
+        title,
+        details
+    };
+    {
+        use schema::boards::dsl::*;
+        diesel::insert_into(schema::boards::table)
+            .values(&new_board)
+            .execute(conn)?;
+        boards.order(id.desc())
+            .first::<models::Board>(conn)
+    }
 }
+
+pub fn create_thread(conn: &SqliteConnection, board: &Board, author: &User, title: String, body: String) -> QueryResult<models::Thread> {
+    let thread = NewThread {
+        board_id: board.id
+    };
+    let thread = {
+        use schema::threads::dsl::*;
+        diesel::insert_into(schema::threads::table)
+            .values(&thread)
+            .execute(conn)?;
+        threads.order(id.desc())
+            .first::<models::Thread>(conn)?
+    };
+    let post = create_post(conn, &thread, author, title, body);
+}
+
+pub fn create_post(conn: &SqliteConnection, thread: &Thread, author: &User, title: String, body: String) -> QueryResult<models::Post> {
+    let post = NewPost {
+        author_id: author.id,
+        thread_id: thread.id,
+        created: 0,
+    };
+    let post = {
+        use schema::posts::dsl::*;
+        diesel::insert_into(schema::posts::table)
+            .values(&post)
+            .execute(conn)?;
+        posts.order(id.desc())
+            .first::<models::Post>(conn)?
+    };
+}
+
+pub fn create_post_contents(conn: &SqliteConnection, post: &Post, author: &User, title: String, body: String) -> QueryResult<models::Post> {
+    let post_contents = NewPostContentInsertion {
+        post_id: post.id,
+        author_id: author.id,
+        title,
+        body,
+        created: 0,
+        is_published: 1 // no drafts yet
+    };
+    let post = {
+        use schema::posts::dsl::*;
+        diesel::insert_into(schema::post_contents::table)
+            .values(&post_contents)
+            .execute(conn)?;
+        posts.order(id.desc())
+            .first::<models::PostContent>(conn)?
+    };
+}
+
 
 pub fn get_post_by_id<'a>(pid: i32) -> QueryResult<models::JoinedPost> {
     use schema::posts::dsl::*;

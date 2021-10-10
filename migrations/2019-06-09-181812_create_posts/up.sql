@@ -1,13 +1,28 @@
 -- Your SQL goes here
+CREATE TABLE boards (
+  id INTEGER PRIMARY KEY NOT NULL,
+  title VARCHAR NOT NULL,
+  details VARCHAR NOT NULL
+);
+
+CREATE TABLE threads (
+  id INTEGER PRIMARY KEY NOT NULL,
+  board_id INTEGER NOT NULL
+);
+
 CREATE TABLE posts (
   id INTEGER PRIMARY KEY NOT NULL,
-  author INTEGER NOT NULL,
-  published_content INTEGER
+  author_id INTEGER NOT NULL,
+  thread_id INTEGER NOT NULL,
+  created INTEGER NOT NULL
 );
 
 CREATE TABLE post_contents (
   id INTEGER PRIMARY KEY NOT NULL,
   post_id INTEGER NOT NULL,
+  author_id INTEGER NOT NULL,
   title VARCHAR NOT NULL,
-  body TEXT NOT NULL
+  body TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  is_published INTEGER NOT NULL
 );

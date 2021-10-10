@@ -9,6 +9,7 @@ askama = "0.10.5"
 rocket = { version = "0.5.0-rc.1", features = ["secrets"] }
 spongedown = "0.4.2"
 diesel = { version = "1.4.8", features = ["sqlite"] }
+#diesel-derive-enum = { version = "1", features = ["..."] } # "postgres", "mysql" or "sqlite"
 sha2 = "0.8.0"
 hex = "0.4.3"
 lazy_static = "1.4.0"
