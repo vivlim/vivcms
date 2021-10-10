@@ -1,4 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate lazy_static;
@@ -11,8 +10,8 @@ use askama::Template;
 use spongedown::parse;
 
 use rocket::response::content;
-use rocket::request::Form;
-use rocket::http::{Cookies};
+use rocket::form::Form;
+use rocket::http::{CookieJar};
 
 mod auth;
 mod db;
@@ -52,11 +51,11 @@ pub struct PostForm {
 fn index() -> content::Html<std::string::String> {
     let hello = HelloTemplate { name: "world" }; // instantiate your struct
     let in_html = hello.render().unwrap(); // then render it.
-    content::Html(parse(&in_html).unwrap())
+    content::Html(parse(&in_html).unwrap().content)
 }
 
 #[get("/admin/post/new")]
-fn new_post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
+fn new_post_page(mut cookies: &CookieJar<'_>) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
@@ -67,7 +66,7 @@ fn new_post_page(mut cookies: Cookies) -> content::Html<std::string::String> {
 }
 
 #[get("/admin/post/edit/<post_id>")]
-fn edit_post_page(mut cookies: Cookies, post_id: i32) -> content::Html<std::string::String> {
+fn edit_post_page(mut cookies: &CookieJar<'_>, post_id: i32) -> content::Html<std::string::String> {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => content::Html(e.error_detail),
         Ok(_user) => {
@@ -83,7 +82,7 @@ fn edit_post_page(mut cookies: Cookies, post_id: i32) -> content::Html<std::stri
 }
 
 #[post("/admin/post/new", data = "<input>")]
-fn post_handle(mut cookies: Cookies, input: Form<PostForm>) -> String {
+fn post_handle(mut cookies: &CookieJar<'_>, input: Form<PostForm>) -> String {
     match auth::validate_session_cookies(&mut cookies) {
         Err(e) => e.error_detail,
         Ok(user) => {
@@ -123,8 +122,9 @@ fn view_post(post_id: i32) -> content::Html<String> {
 }
 
 
-fn main() {
-    rocket::ignite().mount("/", routes![
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount("/", routes![
         index,
         auth::login_page,
         auth::login_handle,
@@ -134,5 +134,4 @@ fn main() {
         post_handle,
         view_post
     ])
-    .launch();
 }

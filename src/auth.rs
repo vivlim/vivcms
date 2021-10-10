@@ -1,9 +1,9 @@
 extern crate sha2;
 extern crate hex;
 use rocket::response::content;
-use rocket::http::{Cookie, Cookies};
-use rocket::request::Form;
-use rocket::request::FromForm;
+use rocket::http::{Cookie, CookieJar};
+use rocket::form::Form;
+use rocket::form::FromForm;
 use askama::Template;
 use sha2::{Sha512, Digest};
 use diesel;
@@ -60,7 +60,7 @@ pub fn login_page() -> content::Html<std::string::String> {
 }
 
 #[post("/login", data = "<input>")]
-pub fn login_handle(mut cookies: Cookies, input: Form<LoginForm>) -> String {
+pub fn login_handle(mut cookies: &CookieJar<'_>, input: Form<LoginForm>) -> String {
     match validate_login_attempt(&input.username, &input.password) {
         Err(e) => format!("Couldn't log in: {}", e),
         Ok(user) => {
@@ -116,17 +116,17 @@ fn validate_login_attempt(name: &String, pass: &String) -> Result<User, AuthErro
     }
 }
 
-pub fn create_session_cookies(cookies: &mut Cookies, user: &User) {
+pub fn create_session_cookies(cookies: &CookieJar<'_>, user: &User) {
     cookies.add_private(Cookie::new("user_id", user.id.to_string()));
     cookies.add_private(Cookie::new("pw2hash", create_hash_string(&user.pass_sha)));
 }
 
-pub fn remove_session_cookies(cookies: &mut Cookies) {
+pub fn remove_session_cookies(cookies: &CookieJar<'_>) {
     cookies.remove_private(Cookie::named("user_id"));
     cookies.remove_private(Cookie::named("pw2hash"));
 }
 
-pub fn validate_session_cookies(cookies: &mut Cookies) -> Result<User, AuthError> {
+pub fn validate_session_cookies(cookies: &CookieJar<'_>) -> Result<User, AuthError> {
     match (cookies.get_private("user_id"), cookies.get_private("pw2hash")) {
         (Some(cookie_user_id_str), Some(cookie_pw2hash)) => {
             let cookie_user_id = cookie_user_id_str.value().parse::<i32>()?;
