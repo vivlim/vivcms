@@ -1,4 +1,6 @@
-table! {
+// @generated automatically by Diesel CLI.
+
+diesel::table! {
     boards (id) {
         id -> Integer,
         title -> Text,
@@ -6,7 +8,7 @@ table! {
     }
 }
 
-table! {
+diesel::table! {
     post_contents (id) {
         id -> Integer,
         post_id -> Integer,
@@ -18,7 +20,7 @@ table! {
     }
 }
 
-table! {
+diesel::table! {
     posts (id) {
         id -> Integer,
         author_id -> Integer,
@@ -27,14 +29,14 @@ table! {
     }
 }
 
-table! {
+diesel::table! {
     threads (id) {
         id -> Integer,
         board_id -> Integer,
     }
 }
 
-table! {
+diesel::table! {
     users (id) {
         id -> Integer,
         username -> Text,
@@ -43,7 +45,7 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(
+diesel::allow_tables_to_appear_in_same_query!(
     boards,
     post_contents,
     posts,
